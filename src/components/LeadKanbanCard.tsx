@@ -1,7 +1,18 @@
-import { Phone, TrendingUp, TrendingDown, ArrowDownToLine, Trophy, Tag as TagIcon, Calendar } from "lucide-react";
+import { useState } from "react";
+import { Phone, TrendingUp, TrendingDown, ArrowDownToLine, Trophy, Tag as TagIcon, Calendar, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { brl, dt, initials, pct } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { Lead, Casa, Deposito, CpaRow, Custo } from "@/hooks/useCpaData";
+import type { Lead, Casa, Deposito, CpaRow, Custo, PipelineStage } from "@/hooks/useCpaData";
+import { STAGES, stageById } from "@/lib/stages";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export type LeadKanbanData = {
   lead: Lead;
@@ -15,6 +26,7 @@ export type LeadKanbanData = {
   lucro: number;
   roi: number;
   casas: { id: string; nome: string }[];
+  depositosByCasa: { casaId: string; casaNome: string; total: number; deps: Deposito[] }[];
   ultimoDeposito: string | null;
   cpaCount: { pendente: number; aprovado: number; pago: number; recusado: number };
 };
@@ -43,12 +55,27 @@ export function buildLeadData(
     const lucro = recebido - investido;
     const roi = investido > 0 ? (lucro / investido) * 100 : 0;
 
-    const casaIds = new Set<string>();
-    lDeps.forEach((d) => casaIds.add(d.casa_id));
-    lCpa.forEach((c) => casaIds.add(c.casa_id));
-    const casasUsadas = Array.from(casaIds)
-      .map((id) => ({ id, nome: casaMap.get(id)?.nome ?? "?" }))
-      .filter((c) => c.nome !== "?");
+    // Agrupa depósitos por casa
+    const byCasaMap = new Map<string, Deposito[]>();
+    lDeps.forEach((d) => {
+      if (!byCasaMap.has(d.casa_id)) byCasaMap.set(d.casa_id, []);
+      byCasaMap.get(d.casa_id)!.push(d);
+    });
+    // garante que casas com CPA mas sem dep também apareçam
+    lCpa.forEach((c) => {
+      if (!byCasaMap.has(c.casa_id)) byCasaMap.set(c.casa_id, []);
+    });
+
+    const depositosByCasa = Array.from(byCasaMap.entries())
+      .map(([casaId, deps]) => ({
+        casaId,
+        casaNome: casaMap.get(casaId)?.nome ?? "Casa removida",
+        total: deps.reduce((s, d) => s + d.valor, 0),
+        deps: deps.sort((a, b) => new Date(a.data_deposito).getTime() - new Date(b.data_deposito).getTime()),
+      }))
+      .sort((a, b) => b.total - a.total);
+
+    const casasUsadas = depositosByCasa.map((c) => ({ id: c.casaId, nome: c.casaNome }));
 
     const cpaCount = {
       pendente: lCpa.filter((c) => c.status === "pendente").length,
@@ -69,7 +96,10 @@ export function buildLeadData(
       lucro,
       roi,
       casas: casasUsadas,
-      ultimoDeposito: lDeps[0]?.data_deposito ?? null,
+      depositosByCasa,
+      ultimoDeposito: lDeps.length > 0
+        ? lDeps.reduce((max, d) => (new Date(d.data_deposito) > new Date(max) ? d.data_deposito : max), lDeps[0].data_deposito)
+        : null,
       cpaCount,
     };
   });
@@ -77,46 +107,85 @@ export function buildLeadData(
 
 interface Props {
   data: LeadKanbanData;
-  onClick: () => void;
+  onOpen: () => void;
 }
 
-export function LeadKanbanCard({ data, onClick }: Props) {
-  const { lead, totalDep, totalCpaPago, totalCpaAprovado, totalCpaPendente, investido, lucro, roi, casas, ultimoDeposito, cpaCount } = data;
+export function LeadKanbanCard({ data, onOpen }: Props) {
+  const { lead, totalDep, totalCpaPago, totalCpaAprovado, totalCpaPendente, investido, lucro, roi, depositosByCasa, ultimoDeposito, cpaCount } = data;
   const positivo = lucro >= 0;
+  const [expanded, setExpanded] = useState(false);
+  const [savingStage, setSavingStage] = useState(false);
+  const qc = useQueryClient();
+  const stageMeta = stageById(lead.pipeline_stage);
+
+  async function changeStage(s: PipelineStage) {
+    setSavingStage(true);
+    const { error } = await supabase.from("leads").update({ pipeline_stage: s }).eq("id", lead.id);
+    setSavingStage(false);
+    if (error) return toast.error(error.message);
+    toast.success(`Movido para ${stageById(s).label}`);
+    qc.invalidateQueries({ queryKey: ["leads"] });
+  }
 
   return (
-    <button
-      onClick={onClick}
+    <div
       className={cn(
         "group relative w-full overflow-hidden rounded-xl border bg-card text-left transition-all",
         "hover:border-primary/40 hover:shadow-glow",
         positivo ? "border-border" : "border-loss/30"
       )}
     >
-      {/* Top accent bar */}
-      <div
-        className={cn(
-          "h-1 w-full",
-          positivo ? "bg-gradient-profit" : "bg-gradient-loss"
-        )}
-      />
+      <div className={cn("h-1 w-full", positivo ? "bg-gradient-profit" : "bg-gradient-loss")} />
 
       <div className="space-y-3 p-3">
-        {/* Header */}
+        {/* Header — clique no nome expande/colapsa; dropdown muda etapa */}
         <div className="flex items-start gap-2.5">
-          <div className={cn(
-            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-mono text-xs font-bold",
-            positivo ? "bg-gradient-profit text-primary-foreground" : "bg-gradient-loss text-loss-foreground"
-          )}>
+          <button
+            onClick={() => setExpanded((e) => !e)}
+            className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-mono text-xs font-bold transition-transform hover:scale-105",
+              positivo ? "bg-gradient-profit text-primary-foreground" : "bg-gradient-loss text-loss-foreground"
+            )}
+            aria-label="Expandir depósitos"
+          >
             {initials(lead.nome)}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-semibold leading-tight">{lead.nome}</div>
+          </button>
+          <button onClick={() => setExpanded((e) => !e)} className="min-w-0 flex-1 text-left">
+            <div className="flex items-center gap-1 truncate text-sm font-semibold leading-tight">
+              <span className="truncate">{lead.nome}</span>
+              {expanded ? <ChevronUp className="h-3 w-3 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />}
+            </div>
             <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
               <Phone className="h-2.5 w-2.5" />
               <span className="truncate font-mono">{lead.telefone}</span>
             </div>
-          </div>
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  "shrink-0 rounded-md border border-border bg-surface-2 px-1.5 py-1 font-mono text-[9px] font-bold uppercase tracking-wider transition-colors hover:bg-surface-3",
+                  stageMeta.text
+                )}
+                aria-label="Mudar etapa"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {savingStage ? <Loader2 className="h-3 w-3 animate-spin" /> : stageMeta.short}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              {STAGES.map((s) => (
+                <DropdownMenuItem
+                  key={s.id}
+                  onClick={() => changeStage(s.id)}
+                  className={cn("gap-2 font-mono text-xs", s.id === lead.pipeline_stage && "bg-surface-2")}
+                >
+                  <span className={cn("h-2 w-2 rounded-full", s.dot)} />
+                  {s.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Lucro destaque */}
@@ -133,7 +202,6 @@ export function LeadKanbanCard({ data, onClick }: Props) {
           </div>
         </div>
 
-        {/* Grid mini stats */}
         <div className="grid grid-cols-2 gap-1.5 text-[11px]">
           <div className="rounded-md bg-surface-2/40 px-2 py-1.5">
             <div className="flex items-center gap-1 text-muted-foreground">
@@ -150,6 +218,54 @@ export function LeadKanbanCard({ data, onClick }: Props) {
             <div className="font-mono font-semibold tabular">{brl(investido)}</div>
           </div>
         </div>
+
+        {/* Painel expansível: depósitos por casa */}
+        {expanded && (
+          <div className="space-y-2 rounded-lg border border-border/60 bg-surface-2/30 p-2">
+            <div className="flex items-center justify-between">
+              <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">Depósitos por casa</div>
+              <span className="font-mono text-[9px] text-muted-foreground">{depositosByCasa.length} casa{depositosByCasa.length !== 1 ? "s" : ""}</span>
+            </div>
+            {depositosByCasa.length === 0 && (
+              <div className="py-2 text-center font-mono text-[10px] text-muted-foreground">Sem depósitos</div>
+            )}
+            {depositosByCasa.map((c) => (
+              <div key={c.casaId} className="rounded-md border border-border/40 bg-card/50 p-2">
+                <div className="flex items-center justify-between border-b border-border/30 pb-1">
+                  <span className="truncate text-[11px] font-semibold">{c.casaNome}</span>
+                  <span className="font-mono text-[11px] font-bold tabular">{brl(c.total)}</span>
+                </div>
+                {c.deps.length === 0 ? (
+                  <div className="pt-1 text-center font-mono text-[10px] text-muted-foreground">Sem depósitos ainda</div>
+                ) : (
+                  <ul className="mt-1 space-y-0.5">
+                    {c.deps.map((d, i) => (
+                      <li key={d.id} className="flex items-center justify-between font-mono text-[10px]">
+                        <span className="flex items-center gap-1.5 text-muted-foreground">
+                          <span className={cn(
+                            "inline-flex h-3.5 w-3.5 items-center justify-center rounded text-[8px] font-bold",
+                            d.origem === "proprio" ? "bg-warning/20 text-warning" : "bg-info/20 text-info"
+                          )}>
+                            {i + 1}
+                          </span>
+                          <Calendar className="h-2.5 w-2.5" />
+                          {dt(d.data_deposito)}
+                        </span>
+                        <span className="tabular font-semibold">{brl(d.valor)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+            <button
+              onClick={onOpen}
+              className="mt-1 w-full rounded-md border border-primary/30 bg-primary/10 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-primary transition-colors hover:bg-primary/20"
+            >
+              Ver detalhes completos →
+            </button>
+          </div>
+        )}
 
         {/* CPA breakdown */}
         <div className="space-y-1">
@@ -181,23 +297,6 @@ export function LeadKanbanCard({ data, onClick }: Props) {
           </div>
         </div>
 
-        {/* Casas */}
-        {casas.length > 0 && (
-          <div className="space-y-1">
-            <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">{casas.length} casa{casas.length > 1 ? "s" : ""}</div>
-            <div className="flex flex-wrap gap-1">
-              {casas.slice(0, 4).map((c) => (
-                <span key={c.id} className="inline-flex items-center rounded-md border border-border bg-surface-3 px-1.5 py-0.5 font-mono text-[10px]">
-                  {c.nome}
-                </span>
-              ))}
-              {casas.length > 4 && (
-                <span className="font-mono text-[10px] text-muted-foreground">+{casas.length - 4}</span>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Tags */}
         {lead.tags?.length > 0 && (
           <div className="flex flex-wrap gap-1">
@@ -209,14 +308,18 @@ export function LeadKanbanCard({ data, onClick }: Props) {
           </div>
         )}
 
-        {/* Footer */}
         <div className="flex items-center justify-between border-t border-border/50 pt-2 text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1 font-mono">
             <Calendar className="h-2.5 w-2.5" /> Últ. {dt(ultimoDeposito)}
           </span>
-          <span className="font-mono uppercase">{lead.status}</span>
+          <button
+            onClick={onOpen}
+            className="font-mono uppercase tracking-wider text-primary transition-colors hover:text-primary/80"
+          >
+            Detalhes
+          </button>
         </div>
       </div>
-    </button>
+    </div>
   );
 }

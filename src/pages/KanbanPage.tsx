@@ -3,33 +3,14 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, X } from "lucide-react";
-import { useCasas, useCpaStatus, useCustos, useDepositos, useLeads, type Lead } from "@/hooks/useCpaData";
+import { useCasas, useCpaStatus, useCustos, useDepositos, useLeads, type Lead, type PipelineStage } from "@/hooks/useCpaData";
 import { brl } from "@/lib/format";
 import { LeadDialog } from "@/components/LeadDialog";
 import { LeadDetailDrawer } from "@/components/LeadDetailDrawer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { buildLeadData, LeadKanbanCard, type LeadKanbanData } from "@/components/LeadKanbanCard";
+import { buildLeadData, LeadKanbanCard } from "@/components/LeadKanbanCard";
 import { cn } from "@/lib/utils";
-
-type StageId = "novo" | "cadastrado" | "depositou" | "cpa_pendente" | "cpa_aprovado" | "cpa_pago";
-
-const STAGES: { id: StageId; label: string; description: string; accent: string; dot: string }[] = [
-  { id: "novo", label: "Novo Lead", description: "Sem cadastro ainda", accent: "from-muted-foreground/20 to-transparent", dot: "bg-muted-foreground" },
-  { id: "cadastrado", label: "Cadastrado", description: "Casa registrada, sem dep.", accent: "from-info/30 to-transparent", dot: "bg-info" },
-  { id: "depositou", label: "Depositou", description: "Sem CPA gerado ainda", accent: "from-accent/30 to-transparent", dot: "bg-accent" },
-  { id: "cpa_pendente", label: "CPA Pendente", description: "Aguardando aprovação", accent: "from-warning/30 to-transparent", dot: "bg-warning" },
-  { id: "cpa_aprovado", label: "CPA Aprovado", description: "Aguardando pagamento", accent: "from-info/40 to-transparent", dot: "bg-info" },
-  { id: "cpa_pago", label: "CPA Pago", description: "Comissão recebida", accent: "from-profit/40 to-transparent", dot: "bg-profit" },
-];
-
-function classify(d: LeadKanbanData, hasCadastro: boolean): StageId {
-  if (d.cpaCount.pago > 0) return "cpa_pago";
-  if (d.cpaCount.aprovado > 0) return "cpa_aprovado";
-  if (d.cpaCount.pendente > 0) return "cpa_pendente";
-  if (d.totalDep > 0) return "depositou";
-  if (hasCadastro || d.casas.length > 0) return "cadastrado";
-  return "novo";
-}
+import { STAGES } from "@/lib/stages";
 
 export default function KanbanPage() {
   const { data: leads = [] } = useLeads();
@@ -44,7 +25,10 @@ export default function KanbanPage() {
   const [search, setSearch] = useState("");
   const [casaFilter, setCasaFilter] = useState<string>("all");
 
-  const allData = useMemo(() => buildLeadData(leads, depositos, cpa, custos, casas), [leads, depositos, cpa, custos, casas]);
+  const allData = useMemo(
+    () => buildLeadData(leads, depositos, cpa, custos, casas),
+    [leads, depositos, cpa, custos, casas]
+  );
 
   const filtered = useMemo(() => {
     return allData.filter((d) => {
@@ -58,20 +42,17 @@ export default function KanbanPage() {
   }, [allData, casaFilter, search]);
 
   const grouped = useMemo(() => {
-    const map: Record<StageId, LeadKanbanData[]> = {
-      novo: [], cadastrado: [], depositou: [], cpa_pendente: [], cpa_aprovado: [], cpa_pago: [],
-    };
+    const map = Object.fromEntries(STAGES.map((s) => [s.id, [] as typeof filtered])) as Record<PipelineStage, typeof filtered>;
     filtered.forEach((d) => {
-      const stage = classify(d, false);
-      map[stage].push(d);
+      const stage = (d.lead.pipeline_stage ?? "cadastro_pendente") as PipelineStage;
+      (map[stage] ?? map.cadastro_pendente).push(d);
     });
-    // sort each by lucro desc
-    (Object.keys(map) as StageId[]).forEach((k) => map[k].sort((a, b) => b.lucro - a.lucro));
+    Object.values(map).forEach((arr) => arr.sort((a, b) => b.lucro - a.lucro));
     return map;
   }, [filtered]);
 
   const totals = useMemo(() => {
-    const t = filtered.reduce(
+    return filtered.reduce(
       (acc, d) => {
         acc.lucro += d.lucro;
         acc.investido += d.investido;
@@ -80,18 +61,19 @@ export default function KanbanPage() {
       },
       { lucro: 0, investido: 0, cpa: 0 }
     );
-    return t;
   }, [filtered]);
 
   return (
     <>
-      <PageHeader title="Pipeline de Leads" subtitle={`${filtered.length} leads · Lucro líquido ${brl(totals.lucro)} · CPA recebido ${brl(totals.cpa)}`}>
+      <PageHeader
+        title="Pipeline de Leads"
+        subtitle={`${filtered.length} leads · Lucro líquido ${brl(totals.lucro)} · CPA recebido ${brl(totals.cpa)}`}
+      >
         <Button onClick={() => { setEditing(null); setOpen(true); }} className="gap-2">
           <Plus className="h-4 w-4" /> Novo Lead
         </Button>
       </PageHeader>
 
-      {/* Filtros */}
       <div className="glass-card mb-4 flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -113,7 +95,6 @@ export default function KanbanPage() {
         )}
       </div>
 
-      {/* Kanban Board */}
       <div className="-mx-4 overflow-x-auto pb-4 md:-mx-6 lg:-mx-8">
         <div className="flex gap-3 px-4 md:px-6 lg:px-8" style={{ minWidth: "min-content" }}>
           {STAGES.map((stage) => {
@@ -121,8 +102,7 @@ export default function KanbanPage() {
             const stageTotal = items.reduce((s, d) => s + d.lucro, 0);
             return (
               <div key={stage.id} className="flex w-[300px] shrink-0 flex-col">
-                {/* Column header */}
-                <div className={cn("relative overflow-hidden rounded-t-xl border border-b-0 border-border bg-card p-3")}>
+                <div className="relative overflow-hidden rounded-t-xl border border-b-0 border-border bg-card p-3">
                   <div className={cn("absolute inset-0 -z-10 bg-gradient-to-b opacity-60", stage.accent)} />
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -141,7 +121,6 @@ export default function KanbanPage() {
                   </div>
                 </div>
 
-                {/* Column body */}
                 <div className="flex-1 space-y-2 rounded-b-xl border border-t-0 border-border bg-surface/30 p-2 min-h-[400px]">
                   {items.length === 0 && (
                     <div className="flex h-32 items-center justify-center text-center text-[11px] text-muted-foreground">
@@ -149,7 +128,7 @@ export default function KanbanPage() {
                     </div>
                   )}
                   {items.map((d) => (
-                    <LeadKanbanCard key={d.lead.id} data={d} onClick={() => setDrawerLead(d.lead)} />
+                    <LeadKanbanCard key={d.lead.id} data={d} onOpen={() => setDrawerLead(d.lead)} />
                   ))}
                 </div>
               </div>
