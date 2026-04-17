@@ -1,6 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export type PipelineStage =
+  | "cadastro_pendente"
+  | "cadastro_feito"
+  | "deposito_pendente"
+  | "deposito_feito"
+  | "aposta_realizada"
+  | "segundo_deposito"
+  | "terceiro_deposito"
+  | "quarto_deposito";
+
 export type Lead = {
   id: string;
   nome: string;
@@ -10,6 +20,7 @@ export type Lead = {
   tags: string[];
   observacoes: string | null;
   data_criacao: string;
+  pipeline_stage: PipelineStage;
 };
 
 export type Casa = {
