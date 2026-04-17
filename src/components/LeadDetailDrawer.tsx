@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { type Lead, type PipelineStage, useCasas, useCpaStatus, useCustos, useDepositos, usePaineis } from "@/hooks/useCpaData";
 import { brl, dt, dtTime, initials } from "@/lib/format";
 import { StatusPill } from "@/components/StatusPill";
