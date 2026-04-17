@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2 } from "lucide-react";
@@ -19,18 +19,17 @@ function CasaDialog({ open, onOpenChange, casa }: { open: boolean; onOpenChange:
   const qc = useQueryClient();
   const [form, setForm] = useState<any>({});
 
-  // initialize when opening
-  useState(() => {});
-  if (open && Object.keys(form).length === 0) {
-    setForm({
-      nome: casa?.nome ?? "",
-      tipo: casa?.tipo ?? "CPA",
-      valor_cpa: casa?.valor_cpa ?? 0,
-      regras_cpa: casa?.regras_cpa ?? "",
-      ativo: casa?.ativo ?? true,
-    });
-  }
-  if (!open && Object.keys(form).length > 0) setForm({});
+  useEffect(() => {
+    if (open) {
+      setForm({
+        nome: casa?.nome ?? "",
+        tipo: casa?.tipo ?? "CPA",
+        valor_cpa: casa?.valor_cpa ?? 0,
+        regras_cpa: casa?.regras_cpa ?? "",
+        ativo: casa?.ativo ?? true,
+      });
+    }
+  }, [open, casa]);
 
   async function save() {
     if (!form.nome) return toast.error("Nome obrigatório");
