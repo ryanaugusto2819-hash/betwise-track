@@ -94,6 +94,27 @@ export function LeadDetailDrawer({ lead, onClose, onEdit }: { lead: Lead | null;
                 <StatusPill status={lead.status} />
                 {lead.origem && <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">· {lead.origem}</span>}
               </div>
+              <div className="mt-3">
+                <div className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Etapa do pipeline</div>
+                <Select value={lead.pipeline_stage} onValueChange={(v) => changeStage(v as PipelineStage)}>
+                  <SelectTrigger className="h-9 bg-surface-2">
+                    <div className="flex items-center gap-2">
+                      <span className={cn("h-2 w-2 rounded-full", stageMeta.dot)} />
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STAGES.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        <span className="flex items-center gap-2">
+                          <span className={cn("h-2 w-2 rounded-full", s.dot)} />
+                          {s.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </SheetHeader>
