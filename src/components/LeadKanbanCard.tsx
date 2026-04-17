@@ -1,4 +1,4 @@
-import { GripVertical, Phone, TrendingUp, TrendingDown, ArrowDownToLine, Trophy, Tag as TagIcon, Calendar, Loader2, Plus } from "lucide-react";
+import { GripVertical, Phone, TrendingUp, TrendingDown, ArrowDownToLine, Trophy, Tag as TagIcon, Calendar, Loader2, Plus, KeyRound } from "lucide-react";
 import { brl, dt, initials, pct } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Lead, Casa, Deposito, CpaRow, Custo, PipelineStage } from "@/hooks/useCpaData";
@@ -18,6 +18,7 @@ import { QuickDepositoDialog } from "@/components/QuickDepositoDialog";
 import { EditDepositoPopover } from "@/components/EditDepositoPopover";
 import { EditCasaPopover } from "@/components/EditCasaPopover";
 import { useCasas } from "@/hooks/useCpaData";
+import { LeadObservacoesPopover } from "@/components/LeadObservacoesPopover";
 
 export type LeadKanbanData = {
   lead: Lead;
