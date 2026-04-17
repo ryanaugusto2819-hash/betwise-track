@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { type Lead, type PipelineStage, useCasas, useCpaStatus, useCustos, useDepositos, usePaineis } from "@/hooks/useCpaData";
 import { brl, dt, dtTime, initials } from "@/lib/format";
 import { StatusPill } from "@/components/StatusPill";
@@ -87,37 +87,38 @@ export function LeadDetailDrawer({ lead, onClose, onEdit }: { lead: Lead | null;
             </div>
             <div className="flex-1">
               <SheetTitle className="text-left text-xl">{lead.nome}</SheetTitle>
-              <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+              <SheetDescription className="mt-1 flex items-center gap-2 text-sm">
                 <Phone className="h-3.5 w-3.5" />{lead.telefone}
-              </div>
+              </SheetDescription>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <StatusPill status={lead.status} />
                 {lead.origem && <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">· {lead.origem}</span>}
               </div>
-              <div className="mt-3">
-                <div className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Etapa do pipeline</div>
-                <Select value={lead.pipeline_stage} onValueChange={(v) => changeStage(v as PipelineStage)}>
-                  <SelectTrigger className="h-9 bg-surface-2">
-                    <div className="flex items-center gap-2">
-                      <span className={cn("h-2 w-2 rounded-full", stageMeta.dot)} />
-                      <SelectValue />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STAGES.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        <span className="flex items-center gap-2">
-                          <span className={cn("h-2 w-2 rounded-full", s.dot)} />
-                          {s.label}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
           </div>
         </SheetHeader>
+
+        <div className="mt-4">
+          <div className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Etapa do pipeline</div>
+          <Select value={lead.pipeline_stage} onValueChange={(v) => changeStage(v as PipelineStage)}>
+            <SelectTrigger className="h-9 bg-surface-2">
+              <div className="flex items-center gap-2">
+                <span className={cn("h-2 w-2 rounded-full", stageMeta.dot)} />
+                <SelectValue />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              {STAGES.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  <span className="flex items-center gap-2">
+                    <span className={cn("h-2 w-2 rounded-full", s.dot)} />
+                    {s.label}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="mt-6 grid grid-cols-2 gap-3">
           <div className="rounded-lg border border-border bg-surface-2 p-3">
