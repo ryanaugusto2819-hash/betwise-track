@@ -33,12 +33,28 @@ export function LeadDetailDrawer({ lead, onClose, onEdit }: { lead: Lead | null;
     const roi = investido > 0 ? (lucro / investido) * 100 : 0;
     const casaName = (id: string) => casas.find((c) => c.id === id)?.nome ?? "—";
     const painelName = (id: string | null) => paineis.find((p) => p.id === id)?.nome ?? "—";
+
+    const byCasaMap = new Map<string, typeof lDeps>();
+    lDeps.forEach((d) => {
+      if (!byCasaMap.has(d.casa_id)) byCasaMap.set(d.casa_id, []);
+      byCasaMap.get(d.casa_id)!.push(d);
+    });
+    lCpa.forEach((c) => { if (!byCasaMap.has(c.casa_id)) byCasaMap.set(c.casa_id, []); });
+    const depsByCasa = Array.from(byCasaMap.entries())
+      .map(([casaId, deps]) => ({
+        casaId,
+        casaNome: casaName(casaId),
+        total: deps.reduce((s, d) => s + d.valor, 0),
+        deps: deps.sort((a, b) => new Date(a.data_deposito).getTime() - new Date(b.data_deposito).getTime()),
+      }))
+      .sort((a, b) => b.total - a.total);
+
     const timeline = [
       ...lDeps.map((d) => ({ kind: "Depósito", date: d.data_deposito, label: `${brl(d.valor)} em ${casaName(d.casa_id)}`, tone: "loss" as const })),
       ...lCpa.map((c) => ({ kind: `CPA ${c.status}`, date: c.data_pagamento ?? c.data_aprovacao ?? lead.data_criacao, label: `${brl(c.valor_cpa)} em ${casaName(c.casa_id)}`, tone: "profit" as const })),
       ...lCustos.map((c) => ({ kind: `Custo: ${c.tipo}`, date: c.data, label: brl(c.valor), tone: "warning" as const })),
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    return { lDeps, lCpa, lCustos, totalDep, totalCpa, lucro, roi, casaName, painelName, timeline };
+    return { lDeps, lCpa, lCustos, totalDep, totalCpa, lucro, roi, casaName, painelName, timeline, depsByCasa };
   }, [lead, depositos, cpa, custos, casas, paineis]);
 
   if (!lead || !data) return null;
@@ -51,6 +67,15 @@ export function LeadDetailDrawer({ lead, onClose, onEdit }: { lead: Lead | null;
     qc.invalidateQueries();
     onClose();
   }
+
+  async function changeStage(s: PipelineStage) {
+    const { error } = await supabase.from("leads").update({ pipeline_stage: s }).eq("id", lead.id);
+    if (error) return toast.error(error.message);
+    toast.success("Etapa atualizada");
+    qc.invalidateQueries({ queryKey: ["leads"] });
+  }
+
+  const stageMeta = stageById(lead.pipeline_stage);
 
   return (
     <Sheet open={!!lead} onOpenChange={(o) => !o && onClose()}>
