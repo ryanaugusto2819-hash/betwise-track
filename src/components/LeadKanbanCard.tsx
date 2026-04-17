@@ -117,6 +117,7 @@ export function LeadKanbanCard({ data, onOpen }: Props) {
   const [savingStage, setSavingStage] = useState(false);
   const [depDialog, setDepDialog] = useState<{ open: boolean; casaId?: string; numero: number }>({ open: false, numero: 1 });
   const qc = useQueryClient();
+  const { data: allCasas = [] } = useCasas();
   const stageMeta = stageById(lead.pipeline_stage);
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: lead.id });
