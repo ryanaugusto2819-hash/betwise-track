@@ -350,6 +350,37 @@ export function LeadKanbanCard({ data, onOpen }: Props) {
           </div>
         </div>
 
+        {/* Logins / Observações */}
+        <LeadObservacoesPopover leadId={lead.id} observacoes={lead.observacoes}>
+          <button
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              "group/obs w-full rounded-md border p-2 text-left transition-colors",
+              lead.observacoes
+                ? "border-accent/30 bg-accent/5 hover:bg-accent/10"
+                : "border-dashed border-border hover:border-accent/40 hover:bg-surface-2/40"
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+                <KeyRound className="h-2.5 w-2.5" /> Logins / Obs.
+              </div>
+              <span className="font-mono text-[9px] text-accent opacity-0 transition-opacity group-hover/obs:opacity-100">
+                {lead.observacoes ? "editar →" : "+ adicionar"}
+              </span>
+            </div>
+            {lead.observacoes ? (
+              <div className="mt-1 line-clamp-2 break-all font-mono text-[10px] text-muted-foreground [-webkit-text-security:disc] [text-security:disc]">
+                {lead.observacoes}
+              </div>
+            ) : (
+              <div className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
+                Salve logins e senhas das contas do lead
+              </div>
+            )}
+          </button>
+        </LeadObservacoesPopover>
+
         {lead.tags?.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {lead.tags.slice(0, 3).map((t) => (
