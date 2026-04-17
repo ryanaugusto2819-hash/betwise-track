@@ -1,4 +1,4 @@
-import { GripVertical, Phone, TrendingUp, TrendingDown, ArrowDownToLine, Trophy, Tag as TagIcon, Calendar, Loader2 } from "lucide-react";
+import { GripVertical, Phone, TrendingUp, TrendingDown, ArrowDownToLine, Trophy, Tag as TagIcon, Calendar, Loader2, Plus } from "lucide-react";
 import { brl, dt, initials, pct } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Lead, Casa, Deposito, CpaRow, Custo, PipelineStage } from "@/hooks/useCpaData";
@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDraggable } from "@dnd-kit/core";
+import { QuickDepositoDialog } from "@/components/QuickDepositoDialog";
 
 export type LeadKanbanData = {
   lead: Lead;
@@ -111,6 +112,7 @@ export function LeadKanbanCard({ data, onOpen }: Props) {
   const { lead, totalDep, totalCpaPago, totalCpaAprovado, totalCpaPendente, investido, lucro, roi, depositosByCasa, ultimoDeposito, cpaCount } = data;
   const positivo = lucro >= 0;
   const [savingStage, setSavingStage] = useState(false);
+  const [depDialog, setDepDialog] = useState<{ open: boolean; casaId?: string; numero: number }>({ open: false, numero: 1 });
   const qc = useQueryClient();
   const stageMeta = stageById(lead.pipeline_stage);
 
@@ -233,14 +235,18 @@ export function LeadKanbanCard({ data, onOpen }: Props) {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">Depósitos por casa</div>
-            <span className="font-mono text-[9px] text-muted-foreground">
-              {depositosByCasa.length} casa{depositosByCasa.length !== 1 ? "s" : ""}
-            </span>
+            <button
+              onClick={() => setDepDialog({ open: true, numero: 1 })}
+              className="flex items-center gap-1 rounded font-mono text-[9px] uppercase tracking-wider text-primary transition-opacity hover:opacity-70"
+              title="Adicionar depósito"
+            >
+              <Plus className="h-2.5 w-2.5" /> Casa
+            </button>
           </div>
           {depositosByCasa.length === 0 ? (
             <button
-              onClick={onOpen}
-              className="w-full rounded-md border border-dashed border-border bg-surface-2/30 py-2 text-center font-mono text-[10px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+              onClick={() => setDepDialog({ open: true, numero: 1 })}
+              className="w-full rounded-md border border-dashed border-primary/40 bg-primary/5 py-2 text-center font-mono text-[10px] font-semibold uppercase tracking-wider text-primary transition-colors hover:bg-primary/10"
             >
               + Adicionar casa/depósito
             </button>
@@ -249,7 +255,16 @@ export function LeadKanbanCard({ data, onOpen }: Props) {
               <div key={c.casaId} className="rounded-md border border-border/40 bg-surface-2/30 p-2">
                 <div className="flex items-center justify-between border-b border-border/30 pb-1">
                   <span className="truncate text-[11px] font-semibold">{c.casaNome}</span>
-                  <span className="font-mono text-[11px] font-bold tabular">{brl(c.total)}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-[11px] font-bold tabular">{brl(c.total)}</span>
+                    <button
+                      onClick={() => setDepDialog({ open: true, casaId: c.casaId, numero: c.deps.length + 1 })}
+                      className="flex h-4 w-4 items-center justify-center rounded bg-primary/15 text-primary transition-colors hover:bg-primary/30"
+                      title={`Adicionar depósito em ${c.casaNome}`}
+                    >
+                      <Plus className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
                 </div>
                 {c.deps.length === 0 ? (
                   <div className="pt-1 text-center font-mono text-[10px] text-muted-foreground">Sem depósitos</div>
@@ -329,6 +344,15 @@ export function LeadKanbanCard({ data, onOpen }: Props) {
           </button>
         </div>
       </div>
+
+      <QuickDepositoDialog
+        open={depDialog.open}
+        onOpenChange={(o) => setDepDialog((s) => ({ ...s, open: o }))}
+        leadId={lead.id}
+        leadNome={lead.nome}
+        defaultCasaId={depDialog.casaId}
+        suggestedNumero={depDialog.numero}
+      />
     </div>
   );
 }
