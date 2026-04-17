@@ -1,14 +1,16 @@
 import { useMemo } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { type Lead, useCasas, useCpaStatus, useCustos, useDepositos, usePaineis } from "@/hooks/useCpaData";
+import { type Lead, type PipelineStage, useCasas, useCpaStatus, useCustos, useDepositos, usePaineis } from "@/hooks/useCpaData";
 import { brl, dt, dtTime, initials } from "@/lib/format";
 import { StatusPill } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
-import { Edit, Phone, Trash2 } from "lucide-react";
+import { Edit, Phone, Trash2, Calendar } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { STAGES, stageById } from "@/lib/stages";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function LeadDetailDrawer({ lead, onClose, onEdit }: { lead: Lead | null; onClose: () => void; onEdit: (l: Lead) => void }) {
   const { data: depositos = [] } = useDepositos();
