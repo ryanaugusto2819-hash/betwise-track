@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Phone, TrendingUp, TrendingDown, ArrowDownToLine, Trophy, Tag as TagIcon, Calendar, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { GripVertical, Phone, TrendingUp, TrendingDown, ArrowDownToLine, Trophy, Tag as TagIcon, Calendar, Loader2 } from "lucide-react";
 import { brl, dt, initials, pct } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Lead, Casa, Deposito, CpaRow, Custo, PipelineStage } from "@/hooks/useCpaData";
@@ -7,12 +6,14 @@ import { STAGES, stageById } from "@/lib/stages";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useDraggable } from "@dnd-kit/core";
 
 export type LeadKanbanData = {
   lead: Lead;
@@ -55,16 +56,12 @@ export function buildLeadData(
     const lucro = recebido - investido;
     const roi = investido > 0 ? (lucro / investido) * 100 : 0;
 
-    // Agrupa depósitos por casa
     const byCasaMap = new Map<string, Deposito[]>();
     lDeps.forEach((d) => {
       if (!byCasaMap.has(d.casa_id)) byCasaMap.set(d.casa_id, []);
       byCasaMap.get(d.casa_id)!.push(d);
     });
-    // garante que casas com CPA mas sem dep também apareçam
-    lCpa.forEach((c) => {
-      if (!byCasaMap.has(c.casa_id)) byCasaMap.set(c.casa_id, []);
-    });
+    lCpa.forEach((c) => { if (!byCasaMap.has(c.casa_id)) byCasaMap.set(c.casa_id, []); });
 
     const depositosByCasa = Array.from(byCasaMap.entries())
       .map(([casaId, deps]) => ({
@@ -113,10 +110,14 @@ interface Props {
 export function LeadKanbanCard({ data, onOpen }: Props) {
   const { lead, totalDep, totalCpaPago, totalCpaAprovado, totalCpaPendente, investido, lucro, roi, depositosByCasa, ultimoDeposito, cpaCount } = data;
   const positivo = lucro >= 0;
-  const [expanded, setExpanded] = useState(false);
   const [savingStage, setSavingStage] = useState(false);
   const qc = useQueryClient();
   const stageMeta = stageById(lead.pipeline_stage);
+
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: lead.id });
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 50 }
+    : undefined;
 
   async function changeStage(s: PipelineStage) {
     setSavingStage(true);
@@ -129,32 +130,41 @@ export function LeadKanbanCard({ data, onOpen }: Props) {
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       className={cn(
-        "group relative w-full overflow-hidden rounded-xl border bg-card text-left transition-all",
+        "group relative w-full overflow-hidden rounded-xl border bg-card text-left transition-shadow",
         "hover:border-primary/40 hover:shadow-glow",
-        positivo ? "border-border" : "border-loss/30"
+        positivo ? "border-border" : "border-loss/30",
+        isDragging && "opacity-50 shadow-glow"
       )}
     >
       <div className={cn("h-1 w-full", positivo ? "bg-gradient-profit" : "bg-gradient-loss")} />
 
       <div className="space-y-3 p-3">
-        {/* Header — clique no nome expande/colapsa; dropdown muda etapa */}
-        <div className="flex items-start gap-2.5">
+        {/* Header com drag handle */}
+        <div className="flex items-start gap-2">
           <button
-            onClick={() => setExpanded((e) => !e)}
+            ref={undefined}
+            {...attributes}
+            {...listeners}
+            className="mt-1 cursor-grab touch-none rounded p-0.5 text-muted-foreground opacity-50 transition-opacity hover:bg-surface-2 hover:opacity-100 active:cursor-grabbing"
+            aria-label="Arrastar"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onOpen}
             className={cn(
               "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-mono text-xs font-bold transition-transform hover:scale-105",
               positivo ? "bg-gradient-profit text-primary-foreground" : "bg-gradient-loss text-loss-foreground"
             )}
-            aria-label="Expandir depósitos"
+            aria-label="Abrir detalhes"
           >
             {initials(lead.nome)}
           </button>
-          <button onClick={() => setExpanded((e) => !e)} className="min-w-0 flex-1 text-left">
-            <div className="flex items-center gap-1 truncate text-sm font-semibold leading-tight">
-              <span className="truncate">{lead.nome}</span>
-              {expanded ? <ChevronUp className="h-3 w-3 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />}
-            </div>
+          <button onClick={onOpen} className="min-w-0 flex-1 text-left">
+            <div className="truncate text-sm font-semibold leading-tight">{lead.nome}</div>
             <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
               <Phone className="h-2.5 w-2.5" />
               <span className="truncate font-mono">{lead.telefone}</span>
@@ -219,24 +229,30 @@ export function LeadKanbanCard({ data, onOpen }: Props) {
           </div>
         </div>
 
-        {/* Painel expansível: depósitos por casa */}
-        {expanded && (
-          <div className="space-y-2 rounded-lg border border-border/60 bg-surface-2/30 p-2">
-            <div className="flex items-center justify-between">
-              <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">Depósitos por casa</div>
-              <span className="font-mono text-[9px] text-muted-foreground">{depositosByCasa.length} casa{depositosByCasa.length !== 1 ? "s" : ""}</span>
-            </div>
-            {depositosByCasa.length === 0 && (
-              <div className="py-2 text-center font-mono text-[10px] text-muted-foreground">Sem depósitos</div>
-            )}
-            {depositosByCasa.map((c) => (
-              <div key={c.casaId} className="rounded-md border border-border/40 bg-card/50 p-2">
+        {/* Depósitos por casa — SEMPRE VISÍVEL */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">Depósitos por casa</div>
+            <span className="font-mono text-[9px] text-muted-foreground">
+              {depositosByCasa.length} casa{depositosByCasa.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+          {depositosByCasa.length === 0 ? (
+            <button
+              onClick={onOpen}
+              className="w-full rounded-md border border-dashed border-border bg-surface-2/30 py-2 text-center font-mono text-[10px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+            >
+              + Adicionar casa/depósito
+            </button>
+          ) : (
+            depositosByCasa.map((c) => (
+              <div key={c.casaId} className="rounded-md border border-border/40 bg-surface-2/30 p-2">
                 <div className="flex items-center justify-between border-b border-border/30 pb-1">
                   <span className="truncate text-[11px] font-semibold">{c.casaNome}</span>
                   <span className="font-mono text-[11px] font-bold tabular">{brl(c.total)}</span>
                 </div>
                 {c.deps.length === 0 ? (
-                  <div className="pt-1 text-center font-mono text-[10px] text-muted-foreground">Sem depósitos ainda</div>
+                  <div className="pt-1 text-center font-mono text-[10px] text-muted-foreground">Sem depósitos</div>
                 ) : (
                   <ul className="mt-1 space-y-0.5">
                     {c.deps.map((d, i) => (
@@ -257,15 +273,9 @@ export function LeadKanbanCard({ data, onOpen }: Props) {
                   </ul>
                 )}
               </div>
-            ))}
-            <button
-              onClick={onOpen}
-              className="mt-1 w-full rounded-md border border-primary/30 bg-primary/10 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-primary transition-colors hover:bg-primary/20"
-            >
-              Ver detalhes completos →
-            </button>
-          </div>
-        )}
+            ))
+          )}
+        </div>
 
         {/* CPA breakdown */}
         <div className="space-y-1">
@@ -297,7 +307,6 @@ export function LeadKanbanCard({ data, onOpen }: Props) {
           </div>
         </div>
 
-        {/* Tags */}
         {lead.tags?.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {lead.tags.slice(0, 3).map((t) => (
@@ -316,7 +325,7 @@ export function LeadKanbanCard({ data, onOpen }: Props) {
             onClick={onOpen}
             className="font-mono uppercase tracking-wider text-primary transition-colors hover:text-primary/80"
           >
-            Detalhes
+            Detalhes →
           </button>
         </div>
       </div>
