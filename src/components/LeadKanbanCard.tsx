@@ -344,6 +344,15 @@ export function LeadKanbanCard({ data, onOpen }: Props) {
           </button>
         </div>
       </div>
+
+      <QuickDepositoDialog
+        open={depDialog.open}
+        onOpenChange={(o) => setDepDialog((s) => ({ ...s, open: o }))}
+        leadId={lead.id}
+        leadNome={lead.nome}
+        defaultCasaId={depDialog.casaId}
+        suggestedNumero={depDialog.numero}
+      />
     </div>
   );
 }
