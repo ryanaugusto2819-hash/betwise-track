@@ -1,14 +1,16 @@
 import { useMemo } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { type Lead, useCasas, useCpaStatus, useCustos, useDepositos, usePaineis } from "@/hooks/useCpaData";
+import { type Lead, type PipelineStage, useCasas, useCpaStatus, useCustos, useDepositos, usePaineis } from "@/hooks/useCpaData";
 import { brl, dt, dtTime, initials } from "@/lib/format";
 import { StatusPill } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
-import { Edit, Phone, Trash2 } from "lucide-react";
+import { Edit, Phone, Trash2, Calendar } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { STAGES, stageById } from "@/lib/stages";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function LeadDetailDrawer({ lead, onClose, onEdit }: { lead: Lead | null; onClose: () => void; onEdit: (l: Lead) => void }) {
   const { data: depositos = [] } = useDepositos();
@@ -31,12 +33,28 @@ export function LeadDetailDrawer({ lead, onClose, onEdit }: { lead: Lead | null;
     const roi = investido > 0 ? (lucro / investido) * 100 : 0;
     const casaName = (id: string) => casas.find((c) => c.id === id)?.nome ?? "—";
     const painelName = (id: string | null) => paineis.find((p) => p.id === id)?.nome ?? "—";
+
+    const byCasaMap = new Map<string, typeof lDeps>();
+    lDeps.forEach((d) => {
+      if (!byCasaMap.has(d.casa_id)) byCasaMap.set(d.casa_id, []);
+      byCasaMap.get(d.casa_id)!.push(d);
+    });
+    lCpa.forEach((c) => { if (!byCasaMap.has(c.casa_id)) byCasaMap.set(c.casa_id, []); });
+    const depsByCasa = Array.from(byCasaMap.entries())
+      .map(([casaId, deps]) => ({
+        casaId,
+        casaNome: casaName(casaId),
+        total: deps.reduce((s, d) => s + d.valor, 0),
+        deps: deps.sort((a, b) => new Date(a.data_deposito).getTime() - new Date(b.data_deposito).getTime()),
+      }))
+      .sort((a, b) => b.total - a.total);
+
     const timeline = [
       ...lDeps.map((d) => ({ kind: "Depósito", date: d.data_deposito, label: `${brl(d.valor)} em ${casaName(d.casa_id)}`, tone: "loss" as const })),
       ...lCpa.map((c) => ({ kind: `CPA ${c.status}`, date: c.data_pagamento ?? c.data_aprovacao ?? lead.data_criacao, label: `${brl(c.valor_cpa)} em ${casaName(c.casa_id)}`, tone: "profit" as const })),
       ...lCustos.map((c) => ({ kind: `Custo: ${c.tipo}`, date: c.data, label: brl(c.valor), tone: "warning" as const })),
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    return { lDeps, lCpa, lCustos, totalDep, totalCpa, lucro, roi, casaName, painelName, timeline };
+    return { lDeps, lCpa, lCustos, totalDep, totalCpa, lucro, roi, casaName, painelName, timeline, depsByCasa };
   }, [lead, depositos, cpa, custos, casas, paineis]);
 
   if (!lead || !data) return null;
@@ -49,6 +67,15 @@ export function LeadDetailDrawer({ lead, onClose, onEdit }: { lead: Lead | null;
     qc.invalidateQueries();
     onClose();
   }
+
+  async function changeStage(s: PipelineStage) {
+    const { error } = await supabase.from("leads").update({ pipeline_stage: s }).eq("id", lead.id);
+    if (error) return toast.error(error.message);
+    toast.success("Etapa atualizada");
+    qc.invalidateQueries({ queryKey: ["leads"] });
+  }
+
+  const stageMeta = stageById(lead.pipeline_stage);
 
   return (
     <Sheet open={!!lead} onOpenChange={(o) => !o && onClose()}>
@@ -66,6 +93,27 @@ export function LeadDetailDrawer({ lead, onClose, onEdit }: { lead: Lead | null;
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <StatusPill status={lead.status} />
                 {lead.origem && <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">· {lead.origem}</span>}
+              </div>
+              <div className="mt-3">
+                <div className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Etapa do pipeline</div>
+                <Select value={lead.pipeline_stage} onValueChange={(v) => changeStage(v as PipelineStage)}>
+                  <SelectTrigger className="h-9 bg-surface-2">
+                    <div className="flex items-center gap-2">
+                      <span className={cn("h-2 w-2 rounded-full", stageMeta.dot)} />
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STAGES.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        <span className="flex items-center gap-2">
+                          <span className={cn("h-2 w-2 rounded-full", s.dot)} />
+                          {s.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
@@ -104,6 +152,50 @@ export function LeadDetailDrawer({ lead, onClose, onEdit }: { lead: Lead | null;
             {lead.observacoes}
           </div>
         )}
+
+        <div className="mt-6">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Depósitos por casa</div>
+            <span className="font-mono text-[10px] text-muted-foreground">{data.depsByCasa.length} casa{data.depsByCasa.length !== 1 ? "s" : ""}</span>
+          </div>
+          <div className="space-y-2">
+            {data.depsByCasa.length === 0 && <div className="text-sm text-muted-foreground">Nenhum depósito registrado.</div>}
+            {data.depsByCasa.map((c) => (
+              <div key={c.casaId} className="rounded-lg border border-border bg-surface-2 p-3">
+                <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold">{c.casaNome}</span>
+                    <span className="rounded-full bg-surface-3 px-1.5 py-0.5 font-mono text-[10px]">{c.deps.length} dep.</span>
+                  </div>
+                  <span className="font-mono text-sm font-bold tabular">{brl(c.total)}</span>
+                </div>
+                {c.deps.length === 0 ? (
+                  <div className="pt-2 text-center font-mono text-[11px] text-muted-foreground">Sem depósitos ainda</div>
+                ) : (
+                  <ul className="mt-2 space-y-1">
+                    {c.deps.map((d, i) => (
+                      <li key={d.id} className="flex items-center justify-between rounded-md bg-card/60 px-2 py-1.5">
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className={cn(
+                            "inline-flex h-5 w-5 items-center justify-center rounded font-mono text-[10px] font-bold",
+                            d.origem === "proprio" ? "bg-warning/20 text-warning" : "bg-info/20 text-info"
+                          )}>
+                            {i + 1}º
+                          </span>
+                          <span className="flex items-center gap-1 font-mono text-muted-foreground">
+                            <Calendar className="h-3 w-3" /> {dt(d.data_deposito)}
+                          </span>
+                          <span className="font-mono text-[10px] uppercase text-muted-foreground">{d.origem}</span>
+                        </div>
+                        <span className="font-mono text-sm font-semibold tabular">{brl(d.valor)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
 
         <div className="mt-6">
           <div className="mb-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">CPA por casa</div>
