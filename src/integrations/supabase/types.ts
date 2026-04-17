@@ -269,6 +269,7 @@ export type Database = {
           nome: string
           observacoes: string | null
           origem: string | null
+          pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]
           status: Database["public"]["Enums"]["lead_status"]
           tags: string[]
           telefone: string
@@ -281,6 +282,7 @@ export type Database = {
           nome: string
           observacoes?: string | null
           origem?: string | null
+          pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
           status?: Database["public"]["Enums"]["lead_status"]
           tags?: string[]
           telefone: string
@@ -293,6 +295,7 @@ export type Database = {
           nome?: string
           observacoes?: string | null
           origem?: string | null
+          pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
           status?: Database["public"]["Enums"]["lead_status"]
           tags?: string[]
           telefone?: string
@@ -341,6 +344,15 @@ export type Database = {
       custo_tipo: "deposito_incentivado" | "bonus" | "outro"
       deposito_origem: "lead" | "proprio"
       lead_status: "ativo" | "pausado" | "bloqueado"
+      pipeline_stage:
+        | "cadastro_pendente"
+        | "cadastro_feito"
+        | "deposito_pendente"
+        | "deposito_feito"
+        | "aposta_realizada"
+        | "segundo_deposito"
+        | "terceiro_deposito"
+        | "quarto_deposito"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -474,6 +486,16 @@ export const Constants = {
       custo_tipo: ["deposito_incentivado", "bonus", "outro"],
       deposito_origem: ["lead", "proprio"],
       lead_status: ["ativo", "pausado", "bloqueado"],
+      pipeline_stage: [
+        "cadastro_pendente",
+        "cadastro_feito",
+        "deposito_pendente",
+        "deposito_feito",
+        "aposta_realizada",
+        "segundo_deposito",
+        "terceiro_deposito",
+        "quarto_deposito",
+      ],
     },
   },
 } as const
