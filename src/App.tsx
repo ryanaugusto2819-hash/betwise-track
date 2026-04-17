@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AppLayout from "@/components/AppLayout";
 import Dashboard from "./pages/Dashboard";
+import KanbanPage from "./pages/KanbanPage";
 import LeadsPage from "./pages/LeadsPage";
 import CasasPage from "./pages/CasasPage";
 import PaineisPage from "./pages/PaineisPage";
@@ -24,7 +25,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route element={<AppLayout />}>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<KanbanPage />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/leads" element={<LeadsPage />} />
             <Route path="/casas" element={<CasasPage />} />
             <Route path="/paineis" element={<PaineisPage />} />
