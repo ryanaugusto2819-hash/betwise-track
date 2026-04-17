@@ -154,6 +154,50 @@ export function LeadDetailDrawer({ lead, onClose, onEdit }: { lead: Lead | null;
         )}
 
         <div className="mt-6">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Depósitos por casa</div>
+            <span className="font-mono text-[10px] text-muted-foreground">{data.depsByCasa.length} casa{data.depsByCasa.length !== 1 ? "s" : ""}</span>
+          </div>
+          <div className="space-y-2">
+            {data.depsByCasa.length === 0 && <div className="text-sm text-muted-foreground">Nenhum depósito registrado.</div>}
+            {data.depsByCasa.map((c) => (
+              <div key={c.casaId} className="rounded-lg border border-border bg-surface-2 p-3">
+                <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold">{c.casaNome}</span>
+                    <span className="rounded-full bg-surface-3 px-1.5 py-0.5 font-mono text-[10px]">{c.deps.length} dep.</span>
+                  </div>
+                  <span className="font-mono text-sm font-bold tabular">{brl(c.total)}</span>
+                </div>
+                {c.deps.length === 0 ? (
+                  <div className="pt-2 text-center font-mono text-[11px] text-muted-foreground">Sem depósitos ainda</div>
+                ) : (
+                  <ul className="mt-2 space-y-1">
+                    {c.deps.map((d, i) => (
+                      <li key={d.id} className="flex items-center justify-between rounded-md bg-card/60 px-2 py-1.5">
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className={cn(
+                            "inline-flex h-5 w-5 items-center justify-center rounded font-mono text-[10px] font-bold",
+                            d.origem === "proprio" ? "bg-warning/20 text-warning" : "bg-info/20 text-info"
+                          )}>
+                            {i + 1}º
+                          </span>
+                          <span className="flex items-center gap-1 font-mono text-muted-foreground">
+                            <Calendar className="h-3 w-3" /> {dt(d.data_deposito)}
+                          </span>
+                          <span className="font-mono text-[10px] uppercase text-muted-foreground">{d.origem}</span>
+                        </div>
+                        <span className="font-mono text-sm font-semibold tabular">{brl(d.valor)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6">
           <div className="mb-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">CPA por casa</div>
           <div className="space-y-1.5">
             {data.lCpa.length === 0 && <div className="text-sm text-muted-foreground">Nenhum CPA registrado.</div>}
