@@ -14,7 +14,319 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      casas_de_aposta: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          regras_cpa: string | null
+          tipo: Database["public"]["Enums"]["casa_tipo"]
+          updated_at: string
+          valor_cpa: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          regras_cpa?: string | null
+          tipo?: Database["public"]["Enums"]["casa_tipo"]
+          updated_at?: string
+          valor_cpa?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          regras_cpa?: string | null
+          tipo?: Database["public"]["Enums"]["casa_tipo"]
+          updated_at?: string
+          valor_cpa?: number
+        }
+        Relationships: []
+      }
+      cpa_status: {
+        Row: {
+          casa_id: string
+          created_at: string
+          data_aprovacao: string | null
+          data_pagamento: string | null
+          id: string
+          lead_id: string
+          painel_id: string | null
+          status: Database["public"]["Enums"]["cpa_status_enum"]
+          updated_at: string
+          valor_cpa: number
+        }
+        Insert: {
+          casa_id: string
+          created_at?: string
+          data_aprovacao?: string | null
+          data_pagamento?: string | null
+          id?: string
+          lead_id: string
+          painel_id?: string | null
+          status?: Database["public"]["Enums"]["cpa_status_enum"]
+          updated_at?: string
+          valor_cpa?: number
+        }
+        Update: {
+          casa_id?: string
+          created_at?: string
+          data_aprovacao?: string | null
+          data_pagamento?: string | null
+          id?: string
+          lead_id?: string
+          painel_id?: string | null
+          status?: Database["public"]["Enums"]["cpa_status_enum"]
+          updated_at?: string
+          valor_cpa?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cpa_status_casa_id_fkey"
+            columns: ["casa_id"]
+            isOneToOne: false
+            referencedRelation: "casas_de_aposta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cpa_status_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cpa_status_painel_id_fkey"
+            columns: ["painel_id"]
+            isOneToOne: false
+            referencedRelation: "paineis_afiliado"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custos: {
+        Row: {
+          created_at: string
+          data: string
+          id: string
+          lead_id: string | null
+          observacao: string | null
+          tipo: Database["public"]["Enums"]["custo_tipo"]
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          id?: string
+          lead_id?: string | null
+          observacao?: string | null
+          tipo?: Database["public"]["Enums"]["custo_tipo"]
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          id?: string
+          lead_id?: string | null
+          observacao?: string | null
+          tipo?: Database["public"]["Enums"]["custo_tipo"]
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custos_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      depositos: {
+        Row: {
+          casa_id: string
+          created_at: string
+          data_deposito: string
+          id: string
+          lead_id: string
+          numero_deposito: number
+          observacao: string | null
+          origem: Database["public"]["Enums"]["deposito_origem"]
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          casa_id: string
+          created_at?: string
+          data_deposito?: string
+          id?: string
+          lead_id: string
+          numero_deposito?: number
+          observacao?: string | null
+          origem?: Database["public"]["Enums"]["deposito_origem"]
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          casa_id?: string
+          created_at?: string
+          data_deposito?: string
+          id?: string
+          lead_id?: string
+          numero_deposito?: number
+          observacao?: string | null
+          origem?: Database["public"]["Enums"]["deposito_origem"]
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "depositos_casa_id_fkey"
+            columns: ["casa_id"]
+            isOneToOne: false
+            referencedRelation: "casas_de_aposta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "depositos_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_cadastros: {
+        Row: {
+          casa_id: string
+          created_at: string
+          data_cadastro: string
+          id: string
+          lead_id: string
+          link_afiliado_usado: string | null
+          painel_id: string | null
+          status_cadastro: Database["public"]["Enums"]["cadastro_status"]
+          updated_at: string
+        }
+        Insert: {
+          casa_id: string
+          created_at?: string
+          data_cadastro?: string
+          id?: string
+          lead_id: string
+          link_afiliado_usado?: string | null
+          painel_id?: string | null
+          status_cadastro?: Database["public"]["Enums"]["cadastro_status"]
+          updated_at?: string
+        }
+        Update: {
+          casa_id?: string
+          created_at?: string
+          data_cadastro?: string
+          id?: string
+          lead_id?: string
+          link_afiliado_usado?: string | null
+          painel_id?: string | null
+          status_cadastro?: Database["public"]["Enums"]["cadastro_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_cadastros_casa_id_fkey"
+            columns: ["casa_id"]
+            isOneToOne: false
+            referencedRelation: "casas_de_aposta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_cadastros_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_cadastros_painel_id_fkey"
+            columns: ["painel_id"]
+            isOneToOne: false
+            referencedRelation: "paineis_afiliado"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          created_at: string
+          data_criacao: string
+          id: string
+          nome: string
+          observacoes: string | null
+          origem: string | null
+          status: Database["public"]["Enums"]["lead_status"]
+          tags: string[]
+          telefone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_criacao?: string
+          id?: string
+          nome: string
+          observacoes?: string | null
+          origem?: string | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          tags?: string[]
+          telefone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_criacao?: string
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          origem?: string | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          tags?: string[]
+          telefone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      paineis_afiliado: {
+        Row: {
+          created_at: string
+          id: string
+          login_url: string | null
+          nome: string
+          observacoes: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          login_url?: string | null
+          nome: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          login_url?: string | null
+          nome?: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +335,12 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      cadastro_status: "feito" | "pendente" | "erro"
+      casa_tipo: "CPA" | "RevShare" | "Hibrido"
+      cpa_status_enum: "pendente" | "aprovado" | "pago" | "recusado"
+      custo_tipo: "deposito_incentivado" | "bonus" | "outro"
+      deposito_origem: "lead" | "proprio"
+      lead_status: "ativo" | "pausado" | "bloqueado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +467,13 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      cadastro_status: ["feito", "pendente", "erro"],
+      casa_tipo: ["CPA", "RevShare", "Hibrido"],
+      cpa_status_enum: ["pendente", "aprovado", "pago", "recusado"],
+      custo_tipo: ["deposito_incentivado", "bonus", "outro"],
+      deposito_origem: ["lead", "proprio"],
+      lead_status: ["ativo", "pausado", "bloqueado"],
+    },
   },
 } as const
