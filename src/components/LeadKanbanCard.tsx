@@ -255,10 +255,24 @@ export function LeadKanbanCard({ data, onOpen }: Props) {
               + Adicionar casa/depósito
             </button>
           ) : (
-            depositosByCasa.map((c) => (
+            depositosByCasa.map((c) => {
+              const casaObj = allCasas.find((x) => x.id === c.casaId);
+              return (
               <div key={c.casaId} className="rounded-md border border-border/40 bg-surface-2/30 p-2">
                 <div className="flex items-center justify-between border-b border-border/30 pb-1">
-                  <span className="truncate text-[11px] font-semibold">{c.casaNome}</span>
+                  {casaObj ? (
+                    <EditCasaPopover casa={casaObj} depositosCount={c.deps.length} leadIdScope={lead.id}>
+                      <button
+                        className="truncate text-[11px] font-semibold transition-colors hover:text-primary"
+                        title="Editar casa"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {c.casaNome}
+                      </button>
+                    </EditCasaPopover>
+                  ) : (
+                    <span className="truncate text-[11px] font-semibold">{c.casaNome}</span>
+                  )}
                   <div className="flex items-center gap-1.5">
                     <span className="font-mono text-[11px] font-bold tabular">{brl(c.total)}</span>
                     <button
@@ -275,24 +289,33 @@ export function LeadKanbanCard({ data, onOpen }: Props) {
                 ) : (
                   <ul className="mt-1 space-y-0.5">
                     {c.deps.map((d, i) => (
-                      <li key={d.id} className="flex items-center justify-between font-mono text-[10px]">
-                        <span className="flex items-center gap-1.5 text-muted-foreground">
-                          <span className={cn(
-                            "inline-flex h-3.5 w-3.5 items-center justify-center rounded text-[8px] font-bold",
-                            d.origem === "proprio" ? "bg-warning/20 text-warning" : "bg-info/20 text-info"
-                          )}>
-                            {i + 1}
-                          </span>
-                          <Calendar className="h-2.5 w-2.5" />
-                          {dt(d.data_deposito)}
-                        </span>
-                        <span className="tabular font-semibold">{brl(d.valor)}</span>
+                      <li key={d.id}>
+                        <EditDepositoPopover deposito={d}>
+                          <button
+                            className="flex w-full items-center justify-between rounded px-1 py-0.5 font-mono text-[10px] transition-colors hover:bg-surface-3"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Editar depósito"
+                          >
+                            <span className="flex items-center gap-1.5 text-muted-foreground">
+                              <span className={cn(
+                                "inline-flex h-3.5 w-3.5 items-center justify-center rounded text-[8px] font-bold",
+                                d.origem === "proprio" ? "bg-warning/20 text-warning" : "bg-info/20 text-info"
+                              )}>
+                                {i + 1}
+                              </span>
+                              <Calendar className="h-2.5 w-2.5" />
+                              {dt(d.data_deposito)}
+                            </span>
+                            <span className="tabular font-semibold">{brl(d.valor)}</span>
+                          </button>
+                        </EditDepositoPopover>
                       </li>
                     ))}
                   </ul>
                 )}
               </div>
-            ))
+              );
+            })
           )}
         </div>
 
