@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Building2, Network, ArrowDownToLine, Trophy, Receipt, Sparkles } from "lucide-react";
+import { LayoutDashboard, Users, Building2, Network, ArrowDownToLine, Trophy, Receipt, Sparkles, Kanban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -15,8 +15,9 @@ import {
 } from "@/components/ui/sidebar";
 
 const main = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Leads", url: "/leads", icon: Users },
+  { title: "Pipeline", url: "/", icon: Kanban },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Leads (lista)", url: "/leads", icon: Users },
   { title: "Casas", url: "/casas", icon: Building2 },
   { title: "Painéis", url: "/paineis", icon: Network },
 ];
