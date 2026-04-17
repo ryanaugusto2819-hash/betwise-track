@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useDraggable } from "@dnd-kit/core";
 import { QuickDepositoDialog } from "@/components/QuickDepositoDialog";
+import { EditDepositoPopover } from "@/components/EditDepositoPopover";
+import { EditCasaPopover } from "@/components/EditCasaPopover";
+import { useCasas } from "@/hooks/useCpaData";
 
 export type LeadKanbanData = {
   lead: Lead;
