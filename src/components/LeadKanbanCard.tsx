@@ -1,4 +1,4 @@
-import { GripVertical, Phone, TrendingUp, TrendingDown, ArrowDownToLine, Trophy, Tag as TagIcon, Calendar, Loader2 } from "lucide-react";
+import { GripVertical, Phone, TrendingUp, TrendingDown, ArrowDownToLine, Trophy, Tag as TagIcon, Calendar, Loader2, Plus } from "lucide-react";
 import { brl, dt, initials, pct } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Lead, Casa, Deposito, CpaRow, Custo, PipelineStage } from "@/hooks/useCpaData";
@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDraggable } from "@dnd-kit/core";
+import { QuickDepositoDialog } from "@/components/QuickDepositoDialog";
 
 export type LeadKanbanData = {
   lead: Lead;
