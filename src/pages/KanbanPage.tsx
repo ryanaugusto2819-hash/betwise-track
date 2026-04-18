@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, X } from "lucide-react";
-import { useCasas, useCpaStatus, useCustos, useDepositos, useLeads, type Lead, type PipelineStage } from "@/hooks/useCpaData";
+import { useCadastros, useCasas, useCpaStatus, useCustos, useDepositos, useLeads, type Lead, type PipelineStage } from "@/hooks/useCpaData";
 import { brl } from "@/lib/format";
 import { LeadDialog } from "@/components/LeadDialog";
 import { LeadDetailDrawer } from "@/components/LeadDetailDrawer";
