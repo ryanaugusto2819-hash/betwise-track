@@ -1,7 +1,7 @@
-import { GripVertical, Phone, TrendingUp, TrendingDown, ArrowDownToLine, Trophy, Tag as TagIcon, Calendar, Loader2, Plus, KeyRound } from "lucide-react";
+import { GripVertical, Phone, TrendingUp, TrendingDown, ArrowDownToLine, Trophy, Tag as TagIcon, Calendar, Loader2, Plus, KeyRound, UserCheck } from "lucide-react";
 import { brl, dt, initials, pct } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { Lead, Casa, Deposito, CpaRow, Custo, PipelineStage } from "@/hooks/useCpaData";
+import type { Lead, Casa, Deposito, CpaRow, Custo, PipelineStage, LeadCadastro } from "@/hooks/useCpaData";
 import { STAGES, stageById } from "@/lib/stages";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,7 @@ import { EditDepositoPopover } from "@/components/EditDepositoPopover";
 import { EditCasaPopover } from "@/components/EditCasaPopover";
 import { useCasas } from "@/hooks/useCpaData";
 import { LeadObservacoesPopover } from "@/components/LeadObservacoesPopover";
+import { LeadCadastroPopover } from "@/components/LeadCadastroPopover";
 
 export type LeadKanbanData = {
   lead: Lead;
