@@ -145,6 +145,6 @@ export const useCadastros = () =>
     queryFn: async () => {
       const { data, error } = await supabase.from("lead_cadastros").select("*").order("data_cadastro", { ascending: false });
       if (error) throw error;
-      return data as any[];
+      return data as LeadCadastro[];
     },
   });
