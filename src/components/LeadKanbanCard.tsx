@@ -1,7 +1,7 @@
-import { GripVertical, Phone, TrendingUp, TrendingDown, ArrowDownToLine, Trophy, Tag as TagIcon, Calendar, Loader2, Plus, KeyRound } from "lucide-react";
+import { GripVertical, Phone, TrendingUp, TrendingDown, ArrowDownToLine, Trophy, Tag as TagIcon, Calendar, Loader2, Plus, KeyRound, UserCheck } from "lucide-react";
 import { brl, dt, initials, pct } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { Lead, Casa, Deposito, CpaRow, Custo, PipelineStage } from "@/hooks/useCpaData";
+import type { Lead, Casa, Deposito, CpaRow, Custo, PipelineStage, LeadCadastro } from "@/hooks/useCpaData";
 import { STAGES, stageById } from "@/lib/stages";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,7 @@ import { EditDepositoPopover } from "@/components/EditDepositoPopover";
 import { EditCasaPopover } from "@/components/EditCasaPopover";
 import { useCasas } from "@/hooks/useCpaData";
 import { LeadObservacoesPopover } from "@/components/LeadObservacoesPopover";
+import { LeadCadastroPopover } from "@/components/LeadCadastroPopover";
 
 export type LeadKanbanData = {
   lead: Lead;
@@ -33,6 +34,10 @@ export type LeadKanbanData = {
   roi: number;
   casas: { id: string; nome: string }[];
   depositosByCasa: { casaId: string; casaNome: string; total: number; deps: Deposito[] }[];
+  /** Cadastros do lead (lead_cadastros) — todos */
+  cadastros: LeadCadastro[];
+  /** Cadastros em casas onde AINDA NÃO há depósito */
+  cadastrosSemDeposito: { cadastro: LeadCadastro; casaNome: string }[];
   ultimoDeposito: string | null;
   cpaCount: { pendente: number; aprovado: number; pago: number; recusado: number };
 };
@@ -42,13 +47,15 @@ export function buildLeadData(
   depositos: Deposito[],
   cpa: CpaRow[],
   custos: Custo[],
-  casas: Casa[]
+  casas: Casa[],
+  cadastros: LeadCadastro[] = []
 ): LeadKanbanData[] {
   const casaMap = new Map(casas.map((c) => [c.id, c]));
   return leads.map((lead) => {
     const lDeps = depositos.filter((d) => d.lead_id === lead.id);
     const lCpa = cpa.filter((c) => c.lead_id === lead.id);
     const lCustos = custos.filter((c) => c.lead_id === lead.id);
+    const lCadastros = cadastros.filter((c) => c.lead_id === lead.id);
 
     const totalDep = lDeps.reduce((s, d) => s + d.valor, 0);
     const totalDepProprio = lDeps.filter((d) => d.origem === "proprio").reduce((s, d) => s + d.valor, 0);
@@ -78,6 +85,10 @@ export function buildLeadData(
       .sort((a, b) => b.total - a.total);
 
     const casasUsadas = depositosByCasa.map((c) => ({ id: c.casaId, nome: c.casaNome }));
+    const casasComDeposito = new Set(depositosByCasa.map((c) => c.casaId));
+    const cadastrosSemDeposito = lCadastros
+      .filter((cad) => !casasComDeposito.has(cad.casa_id))
+      .map((cad) => ({ cadastro: cad, casaNome: casaMap.get(cad.casa_id)?.nome ?? "Casa removida" }));
 
     const cpaCount = {
       pendente: lCpa.filter((c) => c.status === "pendente").length,
@@ -99,6 +110,8 @@ export function buildLeadData(
       roi,
       casas: casasUsadas,
       depositosByCasa,
+      cadastros: lCadastros,
+      cadastrosSemDeposito,
       ultimoDeposito: lDeps.length > 0
         ? lDeps.reduce((max, d) => (new Date(d.data_deposito) > new Date(max) ? d.data_deposito : max), lDeps[0].data_deposito)
         : null,
@@ -113,7 +126,7 @@ interface Props {
 }
 
 export function LeadKanbanCard({ data, onOpen }: Props) {
-  const { lead, totalDep, totalCpaPago, totalCpaAprovado, totalCpaPendente, investido, lucro, roi, depositosByCasa, ultimoDeposito, cpaCount } = data;
+  const { lead, totalDep, totalCpaPago, totalCpaAprovado, totalCpaPendente, investido, lucro, roi, depositosByCasa, ultimoDeposito, cpaCount, cadastros, cadastrosSemDeposito } = data;
   const positivo = lucro >= 0;
   const [savingStage, setSavingStage] = useState(false);
   const [depDialog, setDepDialog] = useState<{ open: boolean; casaId?: string; numero: number }>({ open: false, numero: 1 });
@@ -320,7 +333,62 @@ export function LeadKanbanCard({ data, onOpen }: Props) {
           )}
         </div>
 
-        {/* CPA breakdown */}
+        {/* Cadastros sem depósito — "Já tem cadastro em..." */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+              <UserCheck className="h-2.5 w-2.5" /> Cadastros sem depósito
+            </div>
+            <LeadCadastroPopover
+              leadId={lead.id}
+              cadastros={cadastros}
+              excludeCasaIds={depositosByCasa.map((d) => d.casaId)}
+            >
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1 rounded font-mono text-[9px] uppercase tracking-wider text-accent transition-opacity hover:opacity-70"
+                title="Marcar cadastro em uma casa"
+              >
+                <Plus className="h-2.5 w-2.5" /> Casa
+              </button>
+            </LeadCadastroPopover>
+          </div>
+          {cadastrosSemDeposito.length === 0 ? (
+            <LeadCadastroPopover
+              leadId={lead.id}
+              cadastros={cadastros}
+              excludeCasaIds={depositosByCasa.map((d) => d.casaId)}
+            >
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="w-full rounded-md border border-dashed border-accent/30 bg-accent/5 py-1.5 text-center font-mono text-[10px] text-accent/80 transition-colors hover:bg-accent/10"
+              >
+                + Já tem cadastro em uma casa?
+              </button>
+            </LeadCadastroPopover>
+          ) : (
+            <div className="flex flex-wrap gap-1">
+              {cadastrosSemDeposito.map(({ cadastro, casaNome }) => (
+                <LeadCadastroPopover
+                  key={cadastro.id}
+                  leadId={lead.id}
+                  cadastros={cadastros}
+                  excludeCasaIds={depositosByCasa.map((d) => d.casaId)}
+                >
+                  <button
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 rounded-md border border-accent/30 bg-accent/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-accent transition-colors hover:bg-accent/20"
+                    title="Já tem cadastro nesta casa"
+                  >
+                    <UserCheck className="h-2.5 w-2.5" />
+                    Já tem cadastro · {casaNome}
+                  </button>
+                </LeadCadastroPopover>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="space-y-1">
           <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">CPA</div>
           <div className="flex flex-wrap gap-1">

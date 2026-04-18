@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, X } from "lucide-react";
-import { useCasas, useCpaStatus, useCustos, useDepositos, useLeads, type Lead, type PipelineStage } from "@/hooks/useCpaData";
+import { useCadastros, useCasas, useCpaStatus, useCustos, useDepositos, useLeads, type Lead, type PipelineStage } from "@/hooks/useCpaData";
 import { brl } from "@/lib/format";
 import { LeadDialog } from "@/components/LeadDialog";
 import { LeadDetailDrawer } from "@/components/LeadDetailDrawer";
@@ -42,6 +42,7 @@ export default function KanbanPage() {
   const { data: cpa = [] } = useCpaStatus();
   const { data: casas = [] } = useCasas();
   const { data: custos = [] } = useCustos();
+  const { data: cadastros = [] } = useCadastros();
   const qc = useQueryClient();
 
   const [open, setOpen] = useState(false);
@@ -54,8 +55,8 @@ export default function KanbanPage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const allData = useMemo(
-    () => buildLeadData(leads, depositos, cpa, custos, casas),
-    [leads, depositos, cpa, custos, casas]
+    () => buildLeadData(leads, depositos, cpa, custos, casas, cadastros),
+    [leads, depositos, cpa, custos, casas, cadastros]
   );
 
   const filtered = useMemo(() => {
