@@ -42,6 +42,7 @@ export default function KanbanPage() {
   const { data: cpa = [] } = useCpaStatus();
   const { data: casas = [] } = useCasas();
   const { data: custos = [] } = useCustos();
+  const { data: cadastros = [] } = useCadastros();
   const qc = useQueryClient();
 
   const [open, setOpen] = useState(false);
@@ -54,8 +55,8 @@ export default function KanbanPage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const allData = useMemo(
-    () => buildLeadData(leads, depositos, cpa, custos, casas),
-    [leads, depositos, cpa, custos, casas]
+    () => buildLeadData(leads, depositos, cpa, custos, casas, cadastros),
+    [leads, depositos, cpa, custos, casas, cadastros]
   );
 
   const filtered = useMemo(() => {
