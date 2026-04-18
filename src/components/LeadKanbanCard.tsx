@@ -85,6 +85,10 @@ export function buildLeadData(
       .sort((a, b) => b.total - a.total);
 
     const casasUsadas = depositosByCasa.map((c) => ({ id: c.casaId, nome: c.casaNome }));
+    const casasComDeposito = new Set(depositosByCasa.map((c) => c.casaId));
+    const cadastrosSemDeposito = lCadastros
+      .filter((cad) => !casasComDeposito.has(cad.casa_id))
+      .map((cad) => ({ cadastro: cad, casaNome: casaMap.get(cad.casa_id)?.nome ?? "Casa removida" }));
 
     const cpaCount = {
       pendente: lCpa.filter((c) => c.status === "pendente").length,
@@ -106,6 +110,8 @@ export function buildLeadData(
       roi,
       casas: casasUsadas,
       depositosByCasa,
+      cadastros: lCadastros,
+      cadastrosSemDeposito,
       ultimoDeposito: lDeps.length > 0
         ? lDeps.reduce((max, d) => (new Date(d.data_deposito) > new Date(max) ? d.data_deposito : max), lDeps[0].data_deposito)
         : null,
