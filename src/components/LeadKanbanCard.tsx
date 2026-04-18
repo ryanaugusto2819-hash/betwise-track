@@ -34,6 +34,10 @@ export type LeadKanbanData = {
   roi: number;
   casas: { id: string; nome: string }[];
   depositosByCasa: { casaId: string; casaNome: string; total: number; deps: Deposito[] }[];
+  /** Cadastros do lead (lead_cadastros) — todos */
+  cadastros: LeadCadastro[];
+  /** Cadastros em casas onde AINDA NÃO há depósito */
+  cadastrosSemDeposito: { cadastro: LeadCadastro; casaNome: string }[];
   ultimoDeposito: string | null;
   cpaCount: { pendente: number; aprovado: number; pago: number; recusado: number };
 };
