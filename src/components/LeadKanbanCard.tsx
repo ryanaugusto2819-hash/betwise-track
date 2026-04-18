@@ -47,13 +47,15 @@ export function buildLeadData(
   depositos: Deposito[],
   cpa: CpaRow[],
   custos: Custo[],
-  casas: Casa[]
+  casas: Casa[],
+  cadastros: LeadCadastro[] = []
 ): LeadKanbanData[] {
   const casaMap = new Map(casas.map((c) => [c.id, c]));
   return leads.map((lead) => {
     const lDeps = depositos.filter((d) => d.lead_id === lead.id);
     const lCpa = cpa.filter((c) => c.lead_id === lead.id);
     const lCustos = custos.filter((c) => c.lead_id === lead.id);
+    const lCadastros = cadastros.filter((c) => c.lead_id === lead.id);
 
     const totalDep = lDeps.reduce((s, d) => s + d.valor, 0);
     const totalDepProprio = lDeps.filter((d) => d.origem === "proprio").reduce((s, d) => s + d.valor, 0);
