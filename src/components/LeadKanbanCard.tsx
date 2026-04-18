@@ -126,7 +126,7 @@ interface Props {
 }
 
 export function LeadKanbanCard({ data, onOpen }: Props) {
-  const { lead, totalDep, totalCpaPago, totalCpaAprovado, totalCpaPendente, investido, lucro, roi, depositosByCasa, ultimoDeposito, cpaCount } = data;
+  const { lead, totalDep, totalCpaPago, totalCpaAprovado, totalCpaPendente, investido, lucro, roi, depositosByCasa, ultimoDeposito, cpaCount, cadastros, cadastrosSemDeposito } = data;
   const positivo = lucro >= 0;
   const [savingStage, setSavingStage] = useState(false);
   const [depDialog, setDepDialog] = useState<{ open: boolean; casaId?: string; numero: number }>({ open: false, numero: 1 });
