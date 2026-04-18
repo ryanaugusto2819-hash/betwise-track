@@ -8,8 +8,17 @@ export type PipelineStage =
   | "deposito_feito"
   | "aposta_realizada"
   | "segundo_deposito"
-  | "terceiro_deposito"
-  | "quarto_deposito";
+  | "redeposito";
+
+export type LeadCadastro = {
+  id: string;
+  lead_id: string;
+  casa_id: string;
+  painel_id: string | null;
+  data_cadastro: string;
+  status_cadastro: "feito" | "pendente" | "erro";
+  link_afiliado_usado: string | null;
+};
 
 export type Lead = {
   id: string;
