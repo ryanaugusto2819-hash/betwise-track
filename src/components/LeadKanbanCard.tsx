@@ -333,7 +333,62 @@ export function LeadKanbanCard({ data, onOpen }: Props) {
           )}
         </div>
 
-        {/* CPA breakdown */}
+        {/* Cadastros sem depósito — "Já tem cadastro em..." */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+              <UserCheck className="h-2.5 w-2.5" /> Cadastros sem depósito
+            </div>
+            <LeadCadastroPopover
+              leadId={lead.id}
+              cadastros={cadastros}
+              excludeCasaIds={depositosByCasa.map((d) => d.casaId)}
+            >
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1 rounded font-mono text-[9px] uppercase tracking-wider text-accent transition-opacity hover:opacity-70"
+                title="Marcar cadastro em uma casa"
+              >
+                <Plus className="h-2.5 w-2.5" /> Casa
+              </button>
+            </LeadCadastroPopover>
+          </div>
+          {cadastrosSemDeposito.length === 0 ? (
+            <LeadCadastroPopover
+              leadId={lead.id}
+              cadastros={cadastros}
+              excludeCasaIds={depositosByCasa.map((d) => d.casaId)}
+            >
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="w-full rounded-md border border-dashed border-accent/30 bg-accent/5 py-1.5 text-center font-mono text-[10px] text-accent/80 transition-colors hover:bg-accent/10"
+              >
+                + Já tem cadastro em uma casa?
+              </button>
+            </LeadCadastroPopover>
+          ) : (
+            <div className="flex flex-wrap gap-1">
+              {cadastrosSemDeposito.map(({ cadastro, casaNome }) => (
+                <LeadCadastroPopover
+                  key={cadastro.id}
+                  leadId={lead.id}
+                  cadastros={cadastros}
+                  excludeCasaIds={depositosByCasa.map((d) => d.casaId)}
+                >
+                  <button
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 rounded-md border border-accent/30 bg-accent/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-accent transition-colors hover:bg-accent/20"
+                    title="Já tem cadastro nesta casa"
+                  >
+                    <UserCheck className="h-2.5 w-2.5" />
+                    Já tem cadastro · {casaNome}
+                  </button>
+                </LeadCadastroPopover>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="space-y-1">
           <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">CPA</div>
           <div className="flex flex-wrap gap-1">
